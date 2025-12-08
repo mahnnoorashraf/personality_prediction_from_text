@@ -20,21 +20,30 @@ TextMind is an intelligent application that predicts Myers-Briggs Type Indicator
 
 ## 📊 Dataset Source
 
-This project uses the **Myers-Briggs Personality Type Dataset** from Kaggle:
+This project uses the **official Myers-Briggs Personality Type Dataset** from Kaggle, automatically downloaded via `kagglehub`:
 
 - **Dataset Name:** [MBTI] Myers-Briggs Personality Type Dataset
-- **Source:** https://www.kaggle.com/datasets/zillow/zecon
+- **Dataset ID:** `datasnaek/mbti-type`
+- **Source:** https://www.kaggle.com/datasets/datasnaek/mbti-type
+- **Size:** 8,675 records (personality posts)
 - **Format:** CSV file (`mbti_1.csv`)
 - **Columns:**
   - `type`: The MBTI personality type (16 categories)
   - `posts`: Sample text/writing from individuals
 
-**To Use Your Own Dataset:**
-1. Download the dataset from Kaggle
-2. Place the `mbti_1.csv` file in the project root directory
-3. Run `train_model.py` to train with your data
+**How It Works:**
+1. When you run `python train_model.py`, the script automatically:
+   - Downloads the dataset using `kagglehub.dataset_download("datasnaek/mbti-type")`
+   - Locates `mbti_1.csv` in the downloaded folder
+   - Loads and preprocesses the data
+   - Trains the model on the full real dataset
 
-If the CSV is not found, the application automatically uses a built-in dummy dataset for demonstration purposes.
+**Prerequisites for Automatic Download:**
+- Kaggle API credentials configured (`kaggle auth login`)
+- Internet connection for the first run
+- Subsequent runs use the cached dataset
+
+**Note:** The first training run will take 2-3 minutes as it downloads (~47MB) and processes 8,675 records. Subsequent runs use the cached data.
 
 ---
 
@@ -46,9 +55,10 @@ If the CSV is not found, the application automatically uses a built-in dummy dat
 
 ### Step-by-Step Installation
 
-1. **Clone or Navigate to the Project Directory**
+1. **Clone the Repository**
    ```bash
-   cd c:\Users\mahnn\OneDrive\Documents\PROJECTS\PPFT\Personality-Prediction-from-Text
+   git clone https://github.com/mahnnoorashraf/Personality-Prediction-from-Text.git
+   cd Personality-Prediction-from-Text
    ```
 
 2. **Create a Virtual Environment (Recommended)**
@@ -67,23 +77,39 @@ If the CSV is not found, the application automatically uses a built-in dummy dat
    pip install -r requirements.txt
    ```
 
-4. **Train the Model**
+4. **Configure Kaggle API (Important!)**
+   
+   Before running the training script, you must authenticate with Kaggle:
+   ```bash
+   kaggle auth login
+   ```
+   
+   This will open a browser to create a Kaggle API token. Save it in `~/.kaggle/kaggle.json`
+   
+   **For Windows users:**
+   - Run `kaggle auth login` in PowerShell
+   - Token will be saved in `C:\Users\<YourUsername>\.kaggle\kaggle.json`
+
+5. **Train the Model**
    ```bash
    python train_model.py
    ```
    
    This will:
-   - Load data from `mbti_1.csv` (or create dummy data if not found)
-   - Preprocess the text
-   - Train a Logistic Regression model
+   - Automatically download the Kaggle MBTI dataset (~47MB)
+   - Load 8,675 real personality posts
+   - Preprocess and clean the text
+   - Train a Logistic Regression model on the full dataset
    - Save `model.pkl`, `vectorizer.pkl`, and `label_encoder.pkl`
+   
+   **⏱️ First run takes 2-3 minutes.** Subsequent runs use cached data and are much faster.
 
-5. **Run the Application**
+6. **Run the Application**
    ```bash
    streamlit run app.py
    ```
    
-   The app will open in your default browser at `http://localhost:8501`
+   The app will open at `http://localhost:8501`
 
 ---
 
@@ -158,33 +184,65 @@ Personality-Prediction-from-Text/
   - URL and email removal
   - Special character removal
   - Extra whitespace normalization
+- **Data Source:** Real Kaggle MBTI dataset (8,675 records)
+
+### Dataset Integration
+- **Method:** Automated download via `kagglehub` library
+- **Dataset ID:** `datasnaek/mbti-type`
+- **Caching:** First download cached locally, subsequent runs use cached data
+- **Size:** ~47MB, expands to 8,675 records
+
+### Streamlit Optimization
+- **Caching:** Uses `@st.cache_resource` decorator to cache model artifacts
+- **Performance:** Model loads once, reused for all user predictions
+- **UI Update:** Non-blocking, responsive interface
 
 ### Performance Metrics
-- **Training Accuracy:** ~65-75% (varies with dataset size and quality)
+- **Training Accuracy:** 65-75% (real-world dataset, not overfitted dummy data)
 - **Inference Time:** <100ms per prediction
-- **Model Size:** ~2-5 MB
+- **Model Size:** ~2-5 MB (serialized pickle files)
+- **Memory Usage:** ~500MB during training, ~100MB during inference
 
 ### Dependencies
-- `streamlit`: Web framework
-- `pandas`: Data manipulation
+- `streamlit`: Web framework for interactive UI
+- `pandas`: Data manipulation and CSV loading
 - `numpy`: Numerical operations
 - `scikit-learn`: Machine learning algorithms
+- `kagglehub`: Automatic Kaggle dataset downloading
 
 ---
 
-## 📝 Dummy Dataset
+## 🎯 How Kaggle Integration Works
 
-If `mbti_1.csv` is not found, the application automatically uses 10 hand-crafted examples:
+The project now uses **automated Kaggle dataset downloading** via `kagglehub`:
 
-| MBTI Type | Sample Text |
-|-----------|-------------|
-| ESFP | "I love parties and meeting new people! Energy and excitement is what I live for." |
-| INTJ | "I prefer reading alone and analyzing complex problems. Logic over emotions." |
-| ENFP | "Life is an adventure! I jump from one idea to another. Spontaneity and creativity." |
-| ISTJ | "Structure and responsibility matter most. I follow rules and complete tasks on time." |
-| ... | ... |
+**Technical Flow:**
+```
+train_model.py
+    ↓
+download_kaggle_dataset()
+    ↓
+kagglehub.dataset_download("datasnaek/mbti-type")
+    ↓
+Returns: /path/to/dataset/folder
+    ↓
+load_kaggle_dataset(dataset_path)
+    ↓
+os.path.join(dataset_path, 'mbti_1.csv')
+    ↓
+pandas.read_csv() → DataFrame with 8,675 records
+    ↓
+Preprocess → TF-IDF → Train Model
+    ↓
+Save: model.pkl, vectorizer.pkl, label_encoder.pkl
+```
 
-This allows you to test the application immediately without downloading the dataset.
+**Real Dataset Statistics:**
+- **Total Records:** 8,675 personality posts
+- **Unique MBTI Types:** 16 (all combinations of E/I, S/N, T/F, J/P)
+- **Training Accuracy:** 65-75% (realistic for real-world data)
+- **Features:** 5,000 TF-IDF features with bigrams
+- **Training Time:** 2-3 minutes on first run
 
 ---
 

@@ -1,6 +1,7 @@
 """
 TextMind: Personality Predictor - Web Application
 Interactive Streamlit interface for MBTI personality type prediction.
+Uses real Kaggle MBTI dataset with optimized caching.
 """
 
 import streamlit as st
@@ -45,6 +46,7 @@ def preprocess_text(text):
 def load_model_and_artifacts():
     """
     Load the trained model, vectorizer, and label encoder.
+    Results are cached to avoid reloading on every interaction.
     
     Returns:
         tuple: (model, vectorizer, label_encoder) or (None, None, None) if files missing
@@ -62,6 +64,15 @@ def load_model_and_artifacts():
         return model, vectorizer, label_encoder
     except FileNotFoundError:
         return None, None, None
+
+
+@st.cache_resource
+def get_model_artifacts():
+    """
+    Cached wrapper for loading model artifacts.
+    This prevents reloading the model on every user interaction.
+    """
+    return load_model_and_artifacts()
 
 
 def predict_personality(text, model, vectorizer, label_encoder):
@@ -150,7 +161,7 @@ def main():
         st.markdown("### 🔧 System Status")
         st.divider()
         
-        model, vectorizer, label_encoder = load_model_and_artifacts()
+        model, vectorizer, label_encoder = get_model_artifacts()
         
         if model is not None:
             st.success("✅ System Online")
@@ -167,6 +178,7 @@ def main():
         st.divider()
         st.markdown("### ℹ️ About")
         st.write("**TextMind** predicts MBTI personality types from text using machine learning.")
+        st.write("Trained on the official Kaggle MBTI dataset.")
         st.write("© 2025 TextMind Project")
     
     # Main Content

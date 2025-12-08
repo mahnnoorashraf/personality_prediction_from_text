@@ -1,12 +1,14 @@
 """
 TextMind: Personality Predictor - Model Training Module
 Trains a Logistic Regression model to predict MBTI personality types from text.
+Uses the real Kaggle MBTI dataset via kagglehub.
 """
 
 import pandas as pd
 import numpy as np
 import pickle
 import os
+import kagglehub
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
@@ -45,47 +47,66 @@ def preprocess_text(text):
     return text
 
 
-def create_dummy_dataset():
+def download_kaggle_dataset():
     """
-    Create a dummy dataset for demonstration purposes.
+    Download the MBTI dataset from Kaggle using kagglehub.
     
+    Returns:
+        str: Path to the downloaded dataset folder
+    """
+    print("📥 Downloading MBTI dataset from Kaggle...")
+    try:
+        dataset_path = kagglehub.dataset_download("datasnaek/mbti-type")
+        print(f"✅ Dataset downloaded to: {dataset_path}")
+        return dataset_path
+    except Exception as e:
+        print(f"❌ Error downloading dataset: {e}")
+        print("   Make sure you have Kaggle API configured.")
+        print("   Run: kaggle auth login")
+        return None
+
+
+def load_kaggle_dataset(dataset_path):
+    """
+    Load the MBTI dataset from the Kaggle folder.
+    
+    Args:
+        dataset_path (str): Path to the Kaggle dataset folder
+        
     Returns:
         pd.DataFrame: DataFrame with 'type' and 'posts' columns
     """
-    dummy_data = [
-        ("ESFP", "I love parties and meeting new people! Energy and excitement is what I live for. Can't wait for the weekend!"),
-        ("INTJ", "I prefer reading alone and analyzing complex problems. Social gatherings drain my energy. Logic over emotions."),
-        ("ENFP", "Life is an adventure! I jump from one idea to another. Spontaneity and creativity define me!"),
-        ("ISTJ", "Structure and responsibility matter most. I follow rules and complete tasks on time. Reliability is key."),
-        ("ENFJ", "People are my passion. I love helping others and bringing communities together. Harmony and connection matter."),
-        ("INTP", "Deep dives into theory and abstract concepts fascinate me. I'd rather debate ideas than attend social events."),
-        ("ESFJ", "I'm here to help and support my friends. Loyalty and tradition are important to me. Let's make everyone happy!"),
-        ("ISFP", "Art and aesthetics speak to my soul. I appreciate beauty in small moments. Living in the present feels right."),
-        ("ENTJ", "I lead by vision and strategy. Efficiency and achievement drive me. Emotions are secondary to results."),
-        ("ISFJ", "I care deeply about people's feelings. Protecting those I love is my purpose. Quiet dedication defines me.")
-    ]
+    csv_file = os.path.join(dataset_path, 'mbti_1.csv')
     
-    df = pd.DataFrame(dummy_data, columns=['type', 'posts'])
+    if not os.path.exists(csv_file):
+        print(f"❌ CSV file not found at: {csv_file}")
+        return None
+    
+    print(f"📖 Loading dataset from {csv_file}...")
+    df = pd.read_csv(csv_file)
+    print(f"✅ Loaded {len(df)} records from Kaggle dataset")
+    
     return df
 
 
 def train_model():
     """
     Main training function.
-    Loads data (real or dummy), preprocesses it, and trains the model.
+    Downloads from Kaggle, preprocesses, and trains the model.
     """
-    csv_file = 'mbti_1.csv'
+    # Download dataset from Kaggle
+    dataset_path = download_kaggle_dataset()
     
-    # Load or create dataset
-    if os.path.exists(csv_file):
-        print(f"✅ Found {csv_file}. Loading data...")
-        df = pd.read_csv(csv_file)
-        print(f"   Loaded {len(df)} records from CSV")
-    else:
-        print(f"⚠️  Warning: {csv_file} not found!")
-        print("   Creating dummy dataset with 10 examples for demonstration...")
-        df = create_dummy_dataset()
-        print(f"   Dummy dataset created with {len(df)} records")
+    if dataset_path is None:
+        print("❌ Failed to download dataset. Exiting.")
+        return
+    
+    # Load dataset
+    df = load_kaggle_dataset(dataset_path)
+    
+    if df is None:
+        print("❌ Failed to load dataset. Exiting.")
+        return
     
     print("\n📊 Dataset Info:")
     print(f"   Total records: {len(df)}")
