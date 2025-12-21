@@ -9,12 +9,14 @@
 TextMind is an intelligent application that predicts Myers-Briggs Type Indicator (MBTI) personality types from text samples using advanced machine learning techniques. By analyzing linguistic patterns, word choices, and writing style, TextMind classifies personalities into one of 16 MBTI types (e.g., INTJ, ENFP, ISFJ).
 
 **Key Features:**
-- 🧠 Accurate MBTI prediction using Logistic Regression
+- 🧠 **7 ML Models** trained and compared automatically
+- 🏆 **Best Model:** SGD Classifier with 63.5% accuracy
 - 📊 Real-time confidence scoring and probability visualization
 - 🎨 Professional, user-friendly Streamlit interface
 - 📈 Top 3 personality type predictions with probabilities
-- ⚡ Fast text processing with TF-IDF vectorization
-- 🔄 Dummy dataset support for immediate testing
+- ⚡ Fast text processing with TF-IDF vectorization (500 features)
+- 🔗 Real Kaggle dataset (8,675 personality posts)
+- 📚 Detailed trait definitions for all 4 MBTI dimensions
 
 ---
 
@@ -97,10 +99,10 @@ This project uses the **official Myers-Briggs Personality Type Dataset** from Ka
    
    This will:
    - Automatically download the Kaggle MBTI dataset (~47MB)
-   - Load 8,675 real personality posts
+   - Load 8,675 real personality posts (sampled to 5,000 for faster training)
    - Preprocess and clean the text
-   - Train a Logistic Regression model on the full dataset
-   - Save `model.pkl`, `vectorizer.pkl`, and `label_encoder.pkl`
+   - Train 7 different ML models and automatically select the best one
+   - Save `best_personality_model.pkl`, `vectorizer.pkl`, and `label_encoder.pkl`
    
    **⏱️ First run takes 2-3 minutes.** Subsequent runs use cached data and are much faster.
 
@@ -121,27 +123,62 @@ python train_model.py
 ```
 You should see:
 ```
-✅ Found mbti_1.csv. Loading data...
-📊 Dataset Info: ...
+📥 Downloading MBTI dataset from Kaggle...
+✅ Dataset downloaded to: ~/.cache/kagglehub/datasets/datasnaek/mbti-type/
+
+📖 Loading dataset...
+✅ Loaded 8675 records
+
+📊 Dataset Info:
+   Total records: 8675
+   Unique personality types: 16
+   Personality types: ['ENFJ', 'ENFP', ..., 'ISTJ', 'ISTP']
+
+📉 Sampling 5000 records for faster training...
+
 🧹 Preprocessing text...
 🔢 Vectorizing text with TF-IDF...
 🏷️  Encoding personality type labels...
-🚀 Training Logistic Regression model...
-💾 Saving model and vectorizer...
+📈 Splitting data into Train/Test sets...
+
+🚀 Training and evaluating models...
+🔧 Training Logistic Regression...
+🔧 Training Linear SVC...
+🔧 Training Multinomial Naive Bayes...
+🔧 Training Random Forest...
+🔧 Training Ridge Classifier...
+🔧 Training Decision Tree...
+🔧 Training SGD Classifier...
+
+🏆 Best Model: SGD Classifier
+   Accuracy: 0.6350
+   Precision: 0.6283
+   Recall: 0.6350
+   F1-Score: 0.6171
+
+💾 Saving model and artifacts...
 ✨ Training complete! Model is ready for inference.
 ```
 
+**⏱️ Training time:** ~2-3 minutes on first run (includes Kaggle download)
+
 ### Step 2: Launch the Web Application
 ```bash
-streamlit run app.py
+streamlit run app.py          # Model training script (trains 7 models)
+├── app.py                            # Streamlit web application
+├── personality_data.py               # MBTI descriptions & trait definitions
+├── requirements.txt                  # Python dependencies
+├── README.md                         # This file
+├── best_personality_model.pkl        # Best trained model (SGD Classifier)
+├── vectorizer.pkl                    # TF-IDF vectorizer
+├── label_encoder.pkl                 # Label encoder for 16 MBTI types
+└── .gitignore                        # Git ignore rules (*.pkl excluded)
 ```
 
-### Step 3: Use the Application
-1. **Sidebar:** Check system status (✅ = ready, ⚠️ = needs training)
-2. **Main Area:** Paste text (minimum 10 characters recommended)
-3. **Click "Analyze Profile"** button
-4. **View Results:**
-   - Large MBTI type prediction
+**Generated Files (Auto-created after training):**
+- `best_personality_model.pkl` - The best performing model saved during training
+- `vectorizer.pkl` - TF-IDF vectorizer for text preprocessing
+- `label_encoder.pkl` - Encoder for converting predictions to MBTI type strings- Large MBTI type prediction
    - Confidence score percentage
    - Top 3 predictions with probabilities
    - Visual bar chart
@@ -171,20 +208,44 @@ Personality-Prediction-from-Text/
 ├── label_encoder.pkl       # Label encoder (generated after training)
 └── mbti_1.csv             # Dataset (optional - if not provided, dummy data is used)
 ```
+**7 Models Trained & Compared:**
+1. **Logistic Regression** - 63.00% accuracy
+2. **Linear SVC** - 61.40% accuracy
+3. **Multinomial Naive Bayes** - 43.50% accuracy
+4. **Random Forest** - 54.70% accuracy
+5. **Ridge Classifier** - 61.90% accuracy
+6. **Decision Tree** - 43.20% accuracy
+7. **SGD Classifier** ⭐ - **63.50% accuracy** (WINNER)
 
----
+**Winner:** SGD Classifier with best test accuracy of 63.5%
 
-## 🔧 Technical Details
+### Feature Engineering
+- **Vectorization:** TF-IDF (500 features, unigrams only)
+- **Stop Words:** English stop words removed
+- **Min/Max Document Frequency:** min_df=5, max_df=0.9
 
-### Model Architecture
-- **Algorithm:** Logistic Regression (Multinomial Classification)
-- **Feature Engineering:** TF-IDF Vectorization (max 5000 features, bigrams)
+### Text Preprocessing
+- Lowercase conversion
+- URL and email removal
+- Special character removal
+- Extra whitespace normalization
+- EmBest Model Accuracy:** 63.5% (SGD Classifier)
+- **Precision:** 0.6283
+- **Recall:** 0.6350
+- **F1-Score:** 0.6171
+- **Inference Time:** <50ms per prediction
+- **Model Size:** ~3-8 MB (serialized pickle files)
+- **Memory Usage:** ~200MB during training, ~100MB during inference
+- **Test Dataset:** 1,000 samples (20% of 5,000 sampled records)
+- **Total Records:** 8,675 personality posts
+- **Training Sample:** 5,000 records (for faster training)
+- **Train/Test Split:** 80/20 stratifiedeatures, bigrams)
 - **Text Preprocessing:** 
-  - Lowercase conversion
-  - URL and email removal
-  - Special character removal
-  - Extra whitespace normalization
-- **Data Source:** Real Kaggle MBTI dataset (8,675 records)
+  - Lowercas>=1.0.0` - Web framework for interactive UI
+- `pandas>=1.3.0` - Data manipulation and CSV loading
+- `numpy>=1.21.0` - Numerical operations
+- `scikit-learn>=1.0.0` - Machine learning algorithms (7 models)
+- `kagglehub>=0.1.0` -e:** Real Kaggle MBTI dataset (8,675 records)
 
 ### Dataset Integration
 - **Method:** Automated download via `kagglehub` library
@@ -263,11 +324,27 @@ Save: model.pkl, vectorizer.pkl, label_encoder.pkl
 **Solution:** Run `python train_model.py` first to train the model.
 
 ### Issue: "No module named 'streamlit'"
-**Solution:** Run `pip install -r requirements.txt` to install dependencies.
+**Solution:** Run `pip inst21, 2025
 
-### Issue: Poor prediction accuracy
-**Solution:** Ensure you're using the full Kaggle dataset (not dummy data). The dummy dataset has limited examples.
+**Version:** 2.0 - Multi-Model Training Edition
 
+**Author:** Student Submission
+
+**License:** Educational Use Only
+
+---
+
+## 🔄 Recent Updates (v2.0)
+
+✨ **December 21, 2025:**
+- Added 7 machine learning models with automatic comparison
+- SGD Classifier selected as best model (63.5% accuracy)
+- Optimized TF-IDF vectorization (500 features)
+- Added personality_data.py with trait definitions
+- Fixed Streamlit deprecation warnings
+- Cleaned up git repository (removed unnecessary files)
+- Real Kaggle dataset integration via kagglehub
+- Enhanced app UI with trait explanations
 ---
 
 ## 📚 References
