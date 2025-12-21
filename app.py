@@ -1,7 +1,7 @@
 """
 TextMind: Personality Predictor - Web Application
 Interactive Streamlit interface for MBTI personality type prediction.
-Uses real Kaggle MBTI dataset with optimized caching.
+Enhanced with detailed personality descriptions and trait definitions.
 """
 
 import streamlit as st
@@ -9,9 +9,11 @@ import pickle
 import os
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
 import re
+
+# Import personality data
+from personality_data import personality_descriptions, trait_definitions
 
 
 def preprocess_text(text):
@@ -52,7 +54,7 @@ def load_model_and_artifacts():
         tuple: (model, vectorizer, label_encoder) or (None, None, None) if files missing
     """
     try:
-        with open('model.pkl', 'rb') as f:
+        with open('best_personality_model.pkl', 'rb') as f:
             model = pickle.load(f)
         
         with open('vectorizer.pkl', 'rb') as f:
@@ -140,6 +142,7 @@ def main():
                 padding: 20px;
                 border-radius: 10px;
                 border-left: 5px solid #4CAF50;
+                margin: 20px 0;
             }
             .mbti-type {
                 font-size: 3rem;
@@ -152,6 +155,25 @@ def main():
                 font-size: 1.2rem;
                 text-align: center;
                 color: #666;
+                margin: 10px 0;
+            }
+            .trait-definition {
+                background-color: #F5F5F5;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 10px 0;
+            }
+            .trait-letter {
+                font-size: 2rem;
+                font-weight: bold;
+                color: #2E86AB;
+                margin-bottom: 10px;
+            }
+            .celebrity-item {
+                padding: 8px;
+                background-color: #F0F0F0;
+                margin: 8px 0;
+                border-radius: 5px;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -172,7 +194,7 @@ def main():
                 st.write(types_list)
         else:
             st.warning("⚠️ Training Needed")
-            st.write("Model files not found. Please run `train_model.py` first.")
+            st.write("Model files not found. Please run `python train_model.py` first.")
             st.info("Run the following command to train the model:\n```bash\npython train_model.py\n```")
         
         st.divider()
@@ -190,7 +212,7 @@ def main():
     # Check if model is available
     if model is None:
         st.error("❌ Model not available. Please train the model first.")
-        return
+        st.stop()
     
     # Input Section
     st.markdown("### 📝 Input Your Text")
@@ -205,7 +227,7 @@ def main():
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        analyze_button = st.button("🔍 Analyze Profile", use_container_width=True)
+        analyze_button = st.button("🔍 Analyze Profile", use_container_width=False)
     
     st.divider()
     
@@ -240,8 +262,77 @@ def main():
                     This prediction is based on the linguistic patterns in your text.
                     """)
                 
-                # Top 3 predictions with probabilities
-                st.markdown("### 📊 Top 3 Predicted Types")
+                st.divider()
+                
+                # Display personality description
+                if predicted_type in personality_descriptions:
+                    personality = personality_descriptions[predicted_type]
+                    
+                    st.markdown(f"### 📖 {predicted_type}: {personality['title']}")
+                    st.write(personality['description'])
+                    
+                    # Display traits
+                    st.markdown("**Key Traits:**")
+                    traits_text = " • ".join(personality['traits'])
+                    st.write(f"_{traits_text}_")
+                    
+                    st.divider()
+                    
+                    # Display famous people with this type
+                    st.markdown("### 🌟 Famous People with This Personality")
+                    for celebrity in personality['celebrities']:
+                        st.markdown(f'<div class="celebrity-item">• {celebrity}</div>', unsafe_allow_html=True)
+                
+                st.divider()
+                
+                # Display trait explanations
+                st.markdown("### 🔍 Understanding Your Result")
+                st.write(f"Your personality type **{predicted_type}** is made up of four dimensions. Here's what each letter means:")
+                
+                # Extract the four letters from the personality type
+                letters = list(predicted_type)
+                letter_meanings = {
+                    letters[0]: trait_definitions["Mind"][letters[0]],  # I or E
+                    letters[1]: trait_definitions["Energy"][letters[1]],  # S or N
+                    letters[2]: trait_definitions["Nature"][letters[2]],  # T or F
+                    letters[3]: trait_definitions["Tactics"][letters[3]]   # J or P
+                }
+                
+                # Create 4 columns for the four dimensions
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    letter = letters[0]
+                    meaning = letter_meanings[letter]
+                    st.markdown(f'<div class="trait-letter">{letter}</div>', unsafe_allow_html=True)
+                    st.markdown(f"**{meaning['word']}**")
+                    st.write(meaning['definition'])
+                
+                with col2:
+                    letter = letters[1]
+                    meaning = letter_meanings[letter]
+                    st.markdown(f'<div class="trait-letter">{letter}</div>', unsafe_allow_html=True)
+                    st.markdown(f"**{meaning['word']}**")
+                    st.write(meaning['definition'])
+                
+                with col3:
+                    letter = letters[2]
+                    meaning = letter_meanings[letter]
+                    st.markdown(f'<div class="trait-letter">{letter}</div>', unsafe_allow_html=True)
+                    st.markdown(f"**{meaning['word']}**")
+                    st.write(meaning['definition'])
+                
+                with col4:
+                    letter = letters[3]
+                    meaning = letter_meanings[letter]
+                    st.markdown(f'<div class="trait-letter">{letter}</div>', unsafe_allow_html=True)
+                    st.markdown(f"**{meaning['word']}**")
+                    st.write(meaning['definition'])
+                
+                st.divider()
+                
+                # Display top 3 predictions
+                st.markdown("### 📊 Alternative Personality Types")
                 
                 # Get top 3 probabilities
                 top_3_indices = np.argsort(probabilities)[-3:][::-1]
@@ -250,19 +341,19 @@ def main():
                 
                 # Create bar chart data
                 chart_data = {
-                    'Personality Type': top_3_types,
+                    'Type': top_3_types,
                     'Probability': top_3_probs * 100
                 }
                 
                 st.bar_chart(
                     data=chart_data,
-                    x='Personality Type',
+                    x='Type',
                     y='Probability',
-                    use_container_width=True
+                    use_container_width=False
                 )
                 
                 # Display detailed probabilities
-                st.markdown("#### Detailed Breakdown")
+                st.markdown("#### Top 3 Candidates")
                 col1, col2, col3 = st.columns(3)
                 
                 for idx, (ptype, prob) in enumerate(zip(top_3_types, top_3_probs)):
@@ -271,18 +362,6 @@ def main():
                             label=f"#{idx+1}: {ptype}",
                             value=f"{prob*100:.1f}%"
                         )
-                
-                # Additional info
-                st.markdown("---")
-                with st.expander("📖 Understanding MBTI"):
-                    st.write("""
-                    The Myers-Briggs Type Indicator (MBTI) is a personality framework based on four dichotomies:
-                    
-                    - **E vs I:** Extraverted vs Introverted (how you direct energy)
-                    - **S vs N:** Sensing vs Intuition (how you perceive information)
-                    - **T vs F:** Thinking vs Feeling (how you make decisions)
-                    - **J vs P:** Judging vs Perceiving (how you orient to the world)
-                    """)
 
 
 if __name__ == '__main__':
